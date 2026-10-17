@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Esquema de datos SOLO para el diseñador de informes.
+  Le indica al diseñador qué campos existen. En tiempo de ejecución
+  el reporte recibe un DataTable con columnas de los mismos nombres.
+-->
+<xs:schema id="DsReportes" targetNamespace="http://tempuri.org/DsReportes.xsd"
+           xmlns:mstns="http://tempuri.org/DsReportes.xsd"
+           xmlns="http://tempuri.org/DsReportes.xsd"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:msdata="urn:schemas-microsoft-com:xml-msdata"
+           attributeFormDefault="qualified" elementFormDefault="qualified">
+  <xs:element name="DsReportes" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Alumnos">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="carnet" type="xs:string" minOccurs="0" />
+              <xs:element name="nombres" type="xs:string" minOccurs="0" />
+              <xs:element name="apellidos" type="xs:string" minOccurs="0" />
+              <xs:element name="carrera" type="xs:string" minOccurs="0" />
+              <xs:element name="promedio" type="xs:decimal" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

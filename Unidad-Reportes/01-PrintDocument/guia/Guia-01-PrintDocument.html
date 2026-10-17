@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Impresión con PrintDocument</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --azul:#0a3a7a; --acero:#2f6db5; --tinta:#16233a; --pizarra:#4a5568;
+  --niebla:#e7ecf3; --papel:#ffffff; --fondo:#f3f6fa; --borde:#cfd8e4;
+  --code-bg:#0f1b2e; --code-tx:#dce6f5; --ok:#1d7a4f; --alerta:#a33a2a;
+  --fs:18px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --azul:#8db6ef; --acero:#6ea0e0; --tinta:#e4ebf6; --pizarra:#a9b6c8;
+    --niebla:#1b2840; --papel:#13203a; --fondo:#0c1628; --borde:#2a3b58;
+    --code-bg:#08111f; --ok:#5cc694; --alerta:#ef8a78;
+  }
+}
+:root[data-theme="dark"]{
+  --azul:#8db6ef; --acero:#6ea0e0; --tinta:#e4ebf6; --pizarra:#a9b6c8;
+  --niebla:#1b2840; --papel:#13203a; --fondo:#0c1628; --borde:#2a3b58;
+  --code-bg:#08111f; --ok:#5cc694; --alerta:#ef8a78;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--fondo);color:var(--tinta);font-family:"Atkinson Hyperlegible",system-ui,sans-serif;font-size:var(--fs);line-height:1.6}
+a{color:var(--acero)}
+:focus-visible{outline:3px solid var(--acero);outline-offset:2px}
+#progreso{position:fixed;top:0;left:0;height:4px;width:0;background:#7fb2ff;z-index:50}
+
+.barra{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px;padding:10px 20px;background:#0a3a7a;color:#fff}
+:root[data-theme="dark"] .barra{background:#0a1a33}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .barra{background:#0a1a33}}
+.barra .curso{font-weight:700;flex:1;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barra button{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;font:inherit;font-size:.8rem;cursor:pointer}
+.barra button:hover{background:rgba(255,255,255,.22)}
+#btnMenu{display:none}
+
+.marco{display:grid;grid-template-columns:250px minmax(0,1fr);max-width:1200px;margin:0 auto}
+nav.indice{position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);overflow:auto;padding:28px 16px 28px 20px;border-right:1px solid var(--borde);font-size:.8rem}
+nav.indice ol{list-style:none;margin:0;padding:0}
+nav.indice li a{display:block;padding:6px 10px;border-left:3px solid transparent;color:var(--pizarra);text-decoration:none;border-radius:0 4px 4px 0}
+nav.indice li a.activo{border-left-color:var(--acero);color:var(--tinta);background:var(--niebla);font-weight:700}
+nav.indice li.sub a{padding-left:24px;font-size:.92em}
+main{padding:0 32px 80px;min-width:0}
+section{max-width:78ch;padding-top:36px}
+h1{font-size:2.3rem;line-height:1.1;margin:.2em 0 .3em;color:var(--azul)}
+h2{font-size:1.55rem;color:var(--azul);margin:0 0 .5em;padding-top:12px;border-top:2px solid var(--niebla)}
+h3{font-size:1.15rem;margin:1.6em 0 .4em}
+p{margin:.6em 0}
+p code,li code,.aviso code,.control code{overflow-wrap:anywhere}
+code{font-family:"JetBrains Mono",monospace;font-size:.86em;background:var(--niebla);padding:1px 5px;border-radius:4px}
+
+.portada{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:36px;align-items:center;padding-top:36px;max-width:78ch}
+.logos{display:flex;gap:14px;align-items:center;margin-bottom:12px;min-height:56px}
+.logos img{height:56px;width:auto}
+.logo-oscuro{display:none}
+:root[data-theme="dark"] .logo-claro{display:none}
+:root[data-theme="dark"] .logo-oscuro{display:block}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .logo-claro{display:none}:root:not([data-theme="light"]) .logo-oscuro{display:block}}
+.barra .logo-barra{height:22px;width:auto;flex:none}
+.lugar{color:var(--pizarra);font-size:.85rem;margin:0}
+.portada .bajada{font-size:1.05rem;color:var(--pizarra)}
+.hoja{background:#fff;border:1px solid #c7d1de;box-shadow:0 10px 30px rgba(10,58,122,.18);aspect-ratio:8.5/11;position:relative;padding:30px 22px 26px;transform:rotate(1.5deg)}
+.hoja .margen{position:absolute;inset:16px 14px 22px;border:1.5px dashed #2f6db5;pointer-events:none}
+.hoja .margen span{position:absolute;top:-10px;left:8px;background:#fff;font:600 10px "JetBrains Mono",monospace;color:#2f6db5;padding:0 4px}
+.hoja .t{height:9px;width:60%;margin:0 auto 4px;background:#16233a;border-radius:2px}
+.hoja .st{height:5px;width:40%;margin:0 auto 10px;background:#9aa7b8;border-radius:2px}
+.hoja .fila{height:9px;margin:3px 0;background:#eef2f8}
+.hoja .fila.cab{background:#0a3a7a}
+.hoja .fila:nth-child(odd):not(.cab){background:#dfe7f2}
+.hoja .pie{position:absolute;left:22px;right:22px;bottom:8px;height:5px;background:#c3ccd8;border-radius:2px}
+
+table{border-collapse:collapse;width:100%;font-size:.86rem;margin:.8em 0;background:var(--papel)}
+th,td{border:1px solid var(--borde);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#0a3a7a;color:#fff}
+:root[data-theme="dark"] th{background:#1d3b68}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) th{background:#1d3b68}}
+.tabla{overflow-x:auto}
+
+.ruta{margin:1em 0;border:1px solid var(--borde);background:var(--papel);border-radius:8px;overflow:hidden}
+.ruta > div{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;padding:14px 16px;border-top:1px solid var(--borde)}
+.ruta > div:first-child{border-top:0}
+.ruta > div.actual{background:var(--niebla)}
+.ruta .aqui{display:inline-block;margin-left:8px;padding:0 8px;border-radius:10px;background:var(--acero);color:#fff;font-size:.7rem;font-weight:700;vertical-align:middle}
+.ruta .n{width:36px;height:36px;border-radius:50%;border:2px solid var(--acero);color:var(--acero);display:flex;align-items:center;justify-content:center;font-weight:700}
+.ruta > div.actual .n{background:var(--acero);color:#fff}
+.ruta h3{margin:0 0 .2em;font-size:1rem}
+.ruta p{margin:.2em 0;font-size:.88rem}
+.ruta .uso{color:var(--pizarra)}
+
+.codigo{margin:.8em 0}
+.codigo .arch{display:flex;justify-content:space-between;align-items:center;background:#1c2c47;color:#b9c8de;font:600 .74rem "JetBrains Mono",monospace;padding:6px 12px;border-radius:8px 8px 0 0}
+.codigo .arch button{background:transparent;border:1px solid #4a5f80;color:#dce6f5;border-radius:4px;font:inherit;padding:2px 8px;cursor:pointer}
+pre{margin:0;background:var(--code-bg);color:var(--code-tx);padding:14px 16px;overflow:auto;border-radius:0 0 8px 8px;font:400 .76rem/1.55 "JetBrains Mono",monospace;tab-size:4}
+pre .k{color:#7fb2ff} pre .s{color:#f2c37a} pre .c{color:#8a9db8;font-style:italic} pre .r{color:#c99cff}
+
+.aviso{border-left:4px solid var(--acero);background:var(--papel);padding:10px 14px;margin:1em 0;font-size:.9rem;border-radius:0 6px 6px 0}
+.aviso.alerta{border-left-color:var(--alerta)}
+.aviso strong{color:var(--azul)}
+.aviso.alerta strong{color:var(--alerta)}
+.control{display:flex;gap:10px;align-items:flex-start;background:var(--papel);border:1px solid var(--borde);border-radius:6px;padding:10px 14px;margin:.8em 0;font-size:.9rem;cursor:pointer}
+.control input{width:20px;height:20px;margin-top:2px;accent-color:var(--ok);flex:none}
+.control:has(input:checked){border-color:var(--ok)}
+.control:has(input:checked) .txt{color:var(--pizarra)}
+.control b{color:var(--ok)}
+figure{margin:1em 0}
+figure svg{width:100%;height:auto;display:block}
+figcaption{font-size:.8rem;color:var(--pizarra);margin-top:6px}
+
+.calc{background:var(--papel);border:1px solid var(--borde);border-radius:8px;padding:16px;margin:1em 0}
+.calc .campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 14px}
+.calc label{font-size:.78rem;color:var(--pizarra);display:block}
+.calc input,.calc select{width:100%;font:inherit;font-size:.9rem;padding:5px 8px;border:1px solid var(--borde);border-radius:5px;background:var(--fondo);color:var(--tinta)}
+.calc .res{display:flex;gap:28px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--borde)}
+.calc .res div{font-size:.8rem;color:var(--pizarra)}
+.calc .res b{display:block;font-size:1.6rem;color:var(--azul)}
+.calc .formula{font-family:"JetBrains Mono",monospace;font-size:.74rem;color:var(--pizarra);margin:8px 0 0}
+
+ol.pasos li{margin:.35em 0}
+
+@media (max-width:900px){
+  .marco{grid-template-columns:minmax(0,1fr)}
+  nav.indice{display:none;position:fixed;top:48px;left:0;right:0;height:auto;max-height:70vh;background:var(--papel);z-index:30;border-bottom:1px solid var(--borde);border-right:0}
+  nav.indice.abierto{display:block}
+  #btnMenu{display:inline-block}
+  main{padding:0 16px 60px}
+  .portada{grid-template-columns:1fr}
+  .hoja{max-width:200px;margin:0 auto}
+  h1{font-size:1.8rem}
+}
+@media print{
+  :root{--fs:11pt}
+  .barra,nav.indice,#progreso,.codigo .arch button,.calc,.control input{display:none!important}
+  .marco{display:block}
+  main{padding:0}
+  body{background:#fff;color:#000}
+  pre{background:#f4f6f9;color:#000;border:1px solid #ccc;white-space:pre-wrap}
+  pre .k,pre .s,pre .c,pre .r{color:#000}
+  section{max-width:none}
+  h2{break-after:avoid}
+  .codigo,figure,table,.ruta{break-inside:avoid}
+  .hoja{transform:none;box-shadow:none}
+  .logos .logo-claro{display:block!important}
+  .logos .logo-oscuro{display:none!important}
+}
+</style>
+</head>
+<body>
+<div id="progreso"></div>
+<header class="barra">
+  <button id="btnMenu" aria-label="Mostrar índice">Índice</button>
+  <img class="logo-barra" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAecAAAEVCAYAAADaVy1GAAAACXBIWXMAAC4jAAAuIwF4pT92AAAFJ0lEQVR4nO3Y4Y0SURhA0U9DAZZACXQgVqIl2IHbwVqCpbAdrB1QAh1gTPhr3CwTchnOSd5v8t7HzM28D+fzeT8zfxfvd7ispZgJcCu/Zua44G89mdzVjptLBH7c+UYKlo6zmQC3cFg4zt5d13v5eO87AIC1EWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIjZGAgr9Xtmvhvuqu1m5vnRDyHoy6MfwAJO4sxanWbmYLpwc567BbjWBoAYcQaAGHEGgBhxBoAYcQaAGHEGgBhxBoAYcQaAGHEGgBhxBoAYcQaAGHEGgBhxBoAYcQaAGHEGgBhxBoAYcQaAGHEGgJiNgcCbfLssrrN3fqv3c2Z2j34IV3oVZ3ib7cx8dlbwXzvPyvVcawNAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0DMxkCSni4LgAfkyxkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBiNgayiO3M7FewD/5t62xYqd3C2/rkj3I9cV7G18sCuDfPJtbjWhsAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBiNjNznJkXgwHuzMm7i1Waef0DS4Qf5cvzIJcAAAAASUVORK5CYII=" alt="">
+  <span class="curso">Programación de Aplicaciones de Escritorio</span>
+  <button id="aMenos" aria-label="Reducir texto">A−</button>
+  <button id="aBase" aria-label="Tamaño normal">A</button>
+  <button id="aMas" aria-label="Aumentar texto">A+</button>
+  <button id="btnTema" aria-label="Cambiar tema claro u oscuro">Oscuro</button>
+</header>
+
+<div class="marco">
+<nav class="indice" id="indice" aria-label="Índice">
+  <ol>
+    <li><a href="#inicio">Inicio</a></li>
+    <li><a href="#unidad">La unidad de reportes</a></li>
+    <li><a href="#fundamentos">Cómo imprime .NET</a></li>
+    <li><a href="#pagina">La página por dentro</a></li>
+    <li><a href="#practica">Práctica guiada</a></li>
+    <li class="sub"><a href="#p1">1. Base de datos</a></li>
+    <li class="sub"><a href="#p2">2. Proyecto</a></li>
+    <li class="sub"><a href="#p3">3. Diseño del formulario</a></li>
+    <li class="sub"><a href="#p4">4. Program y conexión</a></li>
+    <li class="sub"><a href="#p5">5. Código del formulario</a></li>
+    <li class="sub"><a href="#p6">6. Probar</a></li>
+    <li><a href="#refuerzo">Ejercicio en clase</a></li>
+    <li><a href="#errores">Errores comunes</a></li>
+    <li><a href="#tarea">Tarea</a></li>
+  </ol>
+</nav>
+
+<main>
+<div class="portada" id="inicio">
+  <div>
+    <div class="logos">
+      <img class="logo-claro" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfoAAAEgCAYAAABcsLEAAAAACXBIWXMAAC4jAAAuIwF4pT92AAAFc0lEQVR4nO3YsW3UYBiA4R90PbS4gRGyAE7YJCPQXQnp8Ba3CcdNwAipbo4oEg0SEkQ40uX180ju/X/f2a/Or959/HY7xni8WMfP82n/ec1ZTvNiR8AlOpxP+8Oa9zXNy9Gm17UbY3wYY1yXDhVkR8Aleo4oe9et7HXqNADAb4QeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDCdpbLRt1Z/CZ92foAXgDP5sqEnk06n/ZfbX57pnkR+gvn2VyfT/cAECb0ABAm9AAQJvQAECb0ABAm9AAQJvQAECb0ABAm9AAQJvQAECb0ABAm9AAQJvQAECb0ABAm9AAQJvQAECb0ABAm9AAQJvQAELazXPh/07zcjDG+G+WqPp1P+2PoPPyDaV4ed35tVuvxjx4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDChB4AwoQeAMKEHgDCdpb7ItyPMX5sfQgAPJ3QvwDn0/4wxjhsfQ4APJ1P9wAQJvQAECb0ABAm9AAQJvQAECb0ABAm9AAQJvQAECb0ABAm9AAQJvQAECb0ABAm9AAQJvQAECb0ABAm9AAQJvQAECb0ABAm9AAQtrPc1V1N83KMnYm/e2tGbNDtNC83Kx/7yg9pXUK/vjdjjOvaoQD+4P2viwvm0z0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCECT0AhAk9AIQJPQCE7cYYRwsGLtD9M9zSnUWzKWOMB5yAKetxEWftAAAAAElFTkSuQmCC" alt="Universidad Nacional de Ingeniería">
+      <img class="logo-oscuro" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAecAAAEVCAYAAADaVy1GAAAACXBIWXMAAC4jAAAuIwF4pT92AAAFJ0lEQVR4nO3Y4Y0SURhA0U9DAZZACXQgVqIl2IHbwVqCpbAdrB1QAh1gTPhr3CwTchnOSd5v8t7HzM28D+fzeT8zfxfvd7ispZgJcCu/Zua44G89mdzVjptLBH7c+UYKlo6zmQC3cFg4zt5d13v5eO87AIC1EWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIgRZwCIEWcAiBFnAIjZGAgr9Xtmvhvuqu1m5vnRDyHoy6MfwAJO4sxanWbmYLpwc567BbjWBoAYcQaAGHEGgBhxBoAYcQaAGHEGgBhxBoAYcQaAGHEGgBhxBoAYcQaAGHEGgBhxBoAYcQaAGHEGgBhxBoAYcQaAGHEGgJiNgcCbfLssrrN3fqv3c2Z2j34IV3oVZ3ib7cx8dlbwXzvPyvVcawNAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0CMOANAjDgDQIw4A0DMxkCSni4LgAfkyxkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBiNgayiO3M7FewD/5t62xYqd3C2/rkj3I9cV7G18sCuDfPJtbjWhsAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBixBkAYsQZAGLEGQBiNjNznJkXgwHuzMm7i1Waef0DS4Qf5cvzIJcAAAAASUVORK5CYII=" alt="Universidad Nacional de Ingeniería">
+    </div>
+    <p class="lugar">Unidad de Reportes, tema 1 de 3</p>
+    <h1>Imprimir con PrintDocument y PrintPreviewDialog</h1>
+    <p class="bajada">Construirás un listado de alumnos leído desde MariaDB, con logo, encabezado, tabla, pie de página y paginación automática, usando solo lo que trae .NET.</p>
+  </div>
+  <div class="hoja" aria-hidden="true">
+    <div class="margen"><span>MarginBounds</span></div>
+    <div class="t"></div><div class="st"></div>
+    <div class="fila cab"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div>
+    <div class="pie"></div>
+  </div>
+</div>
+
+<section id="unidad">
+  <h2>La unidad de reportes</h2>
+  <p>Un reporte convierte los datos de la base en un documento que se puede ver, imprimir o guardar. La unidad avanza de lo más manual a lo más automatizado:</p>
+  <div class="ruta">
+    <div class="actual"><span class="n">1</span><div>
+      <h3>PrintDocument + PrintPreviewDialog <span class="aqui">Este tema</span></h3>
+      <p class="uso">Para qué sirve: imprimir tickets, constancias o listados simples sin instalar paquetes. Es la base sobre la que funcionan las demás herramientas.</p>
+      <p>Qué harás: dibujar texto, líneas e imágenes con <code>Graphics</code>, controlar la paginación con <code>HasMorePages</code>, mostrar la vista previa, configurar la página y elegir la impresora.</p>
+    </div></div>
+    <div><span class="n">2</span><div>
+      <h3>ReportViewer Core + RDLC</h3>
+      <p class="uso">Para qué sirve: reportes formales de negocio que se diseñan visualmente, sin calcular coordenadas.</p>
+      <p>Qué harás: diseñar un archivo <code>.rdlc</code>, alimentarlo con un <code>DataTable</code>, agrupar por carrera, calcular totales, usar parámetros y exportar a PDF, Excel o Word desde el visor.</p>
+    </div></div>
+    <div><span class="n">3</span><div>
+      <h3>ClosedXML y QuestPDF</h3>
+      <p class="uso">Para qué sirve: generar archivos directamente desde un botón “Exportar”, sin abrir un visor.</p>
+      <p>Qué harás: crear un <code>.xlsx</code> con formato a partir de un <code>DataTable</code> (ClosedXML) y un PDF compuesto por código (QuestPDF).</p>
+    </div></div>
+  </div>
+  <p>En el tema 1 tú dibujas cada página. En el tema 2 lo hace el motor de reportes. En el tema 3 produces archivos listos para enviar.</p>
+</section>
+
+<section id="fundamentos">
+  <h2>Cómo imprime .NET</h2>
+  <p>Todo gira alrededor de un objeto: <code>PrintDocument</code>. No contiene texto ni datos; solo <strong>dispara eventos</strong>, y en cada uno tú decides qué dibujar. Los cuadros de diálogo trabajan sobre ese mismo documento.</p>
+  <div class="tabla"><table>
+    <tr><th>Componente</th><th>Qué hace</th><th>Propiedad clave</th></tr>
+    <tr><td><code>PrintDocument</code></td><td>Representa el documento y dispara los eventos de impresión.</td><td><code>DocumentName</code>, <code>DefaultPageSettings</code></td></tr>
+    <tr><td><code>PrintPreviewDialog</code></td><td>Muestra en pantalla cómo quedarán las páginas.</td><td><code>Document</code></td></tr>
+    <tr><td><code>PageSetupDialog</code></td><td>Permite elegir papel, orientación y márgenes.</td><td><code>Document</code>, <code>EnableMetric</code></td></tr>
+    <tr><td><code>PrintDialog</code></td><td>Permite elegir la impresora y el número de copias.</td><td><code>Document</code>, <code>UseEXDialog</code></td></tr>
+  </table></div>
+  <p>Los cuatro están en la pestaña <strong>Impresión</strong> del Cuadro de herramientas. Al arrastrarlos al formulario no aparecen sobre él, sino en la <strong>bandeja de componentes</strong>, debajo del diseñador.</p>
+
+  <h3>El ciclo de eventos</h3>
+  <figure>
+    <svg viewBox="0 0 720 230" role="img" aria-label="Ciclo de eventos: Print o la vista previa disparan BeginPrint una vez, PrintPage por cada página mientras HasMorePages sea True, y EndPrint una vez al final">
+      <defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--acero)"/></marker></defs>
+      <rect x="10" y="80" width="140" height="64" rx="8" fill="var(--niebla)" stroke="var(--borde)"/>
+      <text x="80" y="107" text-anchor="middle" font-size="13" font-weight="700" fill="var(--tinta)">Print()</text>
+      <text x="80" y="126" text-anchor="middle" font-size="11" fill="var(--pizarra)">o vista previa</text>
+      <rect x="190" y="80" width="140" height="64" rx="8" fill="var(--papel)" stroke="var(--acero)" stroke-width="2"/>
+      <text x="260" y="107" text-anchor="middle" font-size="14" font-weight="700" fill="var(--azul)">BeginPrint</text>
+      <text x="260" y="126" text-anchor="middle" font-size="11" fill="var(--pizarra)">1 vez: preparar</text>
+      <rect x="370" y="80" width="150" height="64" rx="8" fill="#2f6db5"/>
+      <text x="445" y="107" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">PrintPage</text>
+      <text x="445" y="126" text-anchor="middle" font-size="11" fill="#e6efff">1 vez por página</text>
+      <rect x="560" y="80" width="150" height="64" rx="8" fill="var(--papel)" stroke="var(--acero)" stroke-width="2"/>
+      <text x="635" y="107" text-anchor="middle" font-size="14" font-weight="700" fill="var(--azul)">EndPrint</text>
+      <text x="635" y="126" text-anchor="middle" font-size="11" fill="var(--pizarra)">1 vez: liberar</text>
+      <line x1="150" y1="112" x2="186" y2="112" stroke="var(--acero)" stroke-width="2" marker-end="url(#fl)"/>
+      <line x1="330" y1="112" x2="366" y2="112" stroke="var(--acero)" stroke-width="2" marker-end="url(#fl)"/>
+      <line x1="520" y1="112" x2="556" y2="112" stroke="var(--acero)" stroke-width="2" marker-end="url(#fl)"/>
+      <path d="M415 80 C415 30, 475 30, 475 76" fill="none" stroke="var(--acero)" stroke-width="2" marker-end="url(#fl)"/>
+      <text x="445" y="24" text-anchor="middle" font-size="12" fill="var(--tinta)">HasMorePages = True</text>
+      <text x="538" y="70" text-anchor="middle" font-size="10" fill="var(--tinta)">False</text>
+      <text x="260" y="172" text-anchor="middle" font-size="11" fill="var(--pizarra)">reiniciar contadores,</text>
+      <text x="260" y="188" text-anchor="middle" font-size="11" fill="var(--pizarra)">crear fuentes y logo</text>
+      <text x="445" y="172" text-anchor="middle" font-size="11" fill="var(--pizarra)">dibujar con e.Graphics</text>
+      <text x="635" y="172" text-anchor="middle" font-size="11" fill="var(--pizarra)">Dispose de fuentes</text>
+      <text x="635" y="188" text-anchor="middle" font-size="11" fill="var(--pizarra)">e imagen</text>
+    </svg>
+    <figcaption>La vista previa y la impresión real ejecutan el ciclo completo cada una. Por eso los contadores se reinician en BeginPrint.</figcaption>
+  </figure>
+
+  <h3>Lo que recibes en PrintPage</h3>
+  <div class="tabla"><table>
+    <tr><th>Miembro de <code>e</code></th><th>Uso</th></tr>
+    <tr><td><code>e.Graphics</code></td><td>La “hoja” donde se dibuja: <code>DrawString</code>, <code>DrawLine</code>, <code>DrawImage</code>, <code>FillRectangle</code>.</td></tr>
+    <tr><td><code>e.MarginBounds</code></td><td>Rectángulo del área útil (la página menos los márgenes).</td></tr>
+    <tr><td><code>e.PageBounds</code></td><td>Rectángulo de la hoja completa.</td></tr>
+    <tr><td><code>e.HasMorePages</code></td><td><code>True</code> pide otra página; <code>False</code> termina el documento.</td></tr>
+  </table></div>
+</section>
+
+<section id="pagina">
+  <h2>La página por dentro</h2>
+  <p>Las coordenadas se miden en <strong>centésimas de pulgada</strong>: una hoja Carta mide 850 × 1100. El origen (0,0) está en la esquina superior izquierda; <em>x</em> crece hacia la derecha y <em>y</em> hacia abajo. El código usa una variable <code>y</code> como “cursor”: dibuja una fila y le suma su alto.</p>
+  <figure>
+    <svg viewBox="0 0 720 330" role="img" aria-label="Anatomía de la página: PageBounds, MarginBounds, encabezado, fila de títulos, filas de detalle y pie en el margen inferior">
+      <rect x="40" y="10" width="240" height="310" fill="#fff" stroke="#9aa7b8"/>
+      <rect x="62" y="30" width="196" height="250" fill="none" stroke="#2f6db5" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <rect x="66" y="34" width="22" height="18" fill="#c7d4e8"/>
+      <rect x="110" y="36" width="100" height="8" fill="#16233a"/>
+      <rect x="125" y="48" width="70" height="4" fill="#9aa7b8"/>
+      <rect x="62" y="62" width="196" height="12" fill="#0a3a7a"/>
+      <g fill="#dfe7f2"><rect x="62" y="86" width="196" height="12"/><rect x="62" y="110" width="196" height="12"/><rect x="62" y="134" width="196" height="12"/><rect x="62" y="158" width="196" height="12"/><rect x="62" y="182" width="196" height="12"/><rect x="62" y="206" width="196" height="12"/><rect x="62" y="230" width="196" height="12"/><rect x="62" y="254" width="196" height="12"/></g>
+      <line x1="62" y1="290" x2="258" y2="290" stroke="#c3ccd8"/>
+      <rect x="62" y="296" width="70" height="4" fill="#9aa7b8"/><rect x="215" y="296" width="43" height="4" fill="#9aa7b8"/>
+      <circle cx="40" cy="10" r="4" fill="var(--alerta)"/>
+      <text x="2" y="28" font-size="11" fill="var(--alerta)">(0,0)</text>
+      <g font-size="12" fill="var(--tinta)">
+        <line x1="285" y1="20" x2="330" y2="20" stroke="var(--borde)"/><text x="336" y="24"><tspan font-weight="700">PageBounds</tspan>: la hoja completa</text>
+        <line x1="262" y1="34" x2="330" y2="50" stroke="var(--borde)"/><text x="336" y="54"><tspan font-weight="700">MarginBounds</tspan>: área útil (línea discontinua)</text>
+        <line x1="262" y1="44" x2="330" y2="84" stroke="var(--borde)"/><text x="336" y="88">a) Encabezado: logo, título y fecha (55 + 10)</text>
+        <line x1="262" y1="68" x2="330" y2="118" stroke="var(--borde)"/><text x="336" y="122">b) Fila de títulos: fondo azul, letra blanca</text>
+        <line x1="262" y1="164" x2="330" y2="160" stroke="var(--borde)"/><text x="336" y="164">c) Filas de detalle, mientras quepan:</text>
+        <text x="336" y="182" fill="var(--pizarra)">y + altoFila &lt;= area.Bottom</text>
+        <line x1="262" y1="296" x2="330" y2="232" stroke="var(--borde)"/><text x="336" y="236">d) Pie, dentro del margen inferior:</text>
+        <text x="336" y="254" fill="var(--pizarra)">empieza en area.Bottom + 10</text>
+        <text x="336" y="290">e) Si quedan filas: HasMorePages = True</text>
+      </g>
+    </svg>
+  </figure>
+
+  <h3>Calculadora: ¿cuántas filas caben?</h3>
+  <p>Cambia los valores y observa cómo el papel, la orientación y los márgenes alteran la cantidad de páginas. Usa la misma regla que el código.</p>
+  <div class="calc" id="calc">
+    <div class="campos">
+      <div><label for="cPapel">Papel</label><select id="cPapel"><option value="850x1100">Carta (850 × 1100)</option><option value="850x1400">Legal (850 × 1400)</option><option value="827x1169">A4 (827 × 1169)</option></select></div>
+      <div><label for="cOri">Orientación</label><select id="cOri"><option value="v">Vertical</option><option value="h">Horizontal</option></select></div>
+      <div><label for="cSup">Margen superior</label><input id="cSup" type="number" value="60" min="0" step="5"></div>
+      <div><label for="cInf">Margen inferior</label><input id="cInf" type="number" value="80" min="0" step="5"></div>
+      <div><label for="cFila">Alto de fila</label><input id="cFila" type="number" value="26.5" min="10" step="0.5"></div>
+      <div><label for="cReg">Registros</label><input id="cReg" type="number" value="60" min="0" step="1"></div>
+    </div>
+    <div class="res">
+      <div><b id="rArea">–</b>alto útil</div>
+      <div><b id="rFilas">–</b>filas por página</div>
+      <div><b id="rPag">–</b>páginas</div>
+    </div>
+    <p class="formula">filas = piso((alto útil − 65 − altoFila) / altoFila)</p>
+  </div>
+  <p>El alto de fila sale de <code>fuenteDetalle.GetHeight(g) + 8</code>; con Segoe UI 10 pt es aproximadamente 26.5.</p>
+</section>
+
+<section id="practica">
+  <h2>Práctica guiada</h2>
+  <p>Sigue los pasos en orden. Al final de cada uno hay un punto de control: márcalo solo cuando lo hayas comprobado en tu equipo.</p>
+
+  <h3 id="p1">1. Base de datos</h3>
+  <p>Abre HeidiSQL (o la consola de MariaDB) y ejecuta el script <code>bd/reportes_pae.sql</code> del repositorio. Crea la base <code>reportes_pae</code> y la tabla <code>alumnos</code> con 60 registros.</p>
+  <div class="codigo"><div class="arch"><span>bd/reportes_pae.sql</span><button type="button">Copiar</button></div><pre class="sql">CREATE DATABASE IF NOT EXISTS reportes_pae
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE reportes_pae;
+
+DROP TABLE IF EXISTS alumnos;
+CREATE TABLE alumnos (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    carnet     VARCHAR(12)  NOT NULL UNIQUE,
+    nombres    VARCHAR(60)  NOT NULL,
+    apellidos  VARCHAR(60)  NOT NULL,
+    carrera    VARCHAR(60)  NOT NULL,
+    promedio   DECIMAL(5,2) NOT NULL
+);
+
+-- … más 60 registros de ejemplo (ver bd/reportes_pae.sql)</pre></div>
+  <label class="control"><input type="checkbox" data-ck="1"><span class="txt"><b>Control:</b> <code>SELECT COUNT(*) FROM alumnos;</code> devuelve 60.</span></label>
+
+  <h3 id="p2">2. Proyecto</h3>
+  <ol class="pasos">
+    <li>Visual Studio 2026 → <strong>Crear un proyecto</strong> → <em>Aplicación de Windows Forms</em> (Visual Basic). Nombre: <code>ReporteImpresion</code>. Framework: <strong>.NET 10.0</strong>.</li>
+    <li>Elimina <code>Form1.vb</code>. Agrega un formulario nuevo: clic derecho en el proyecto → <strong>Agregar → Formulario (Windows Forms)</strong> → <code>FrmReporte.vb</code>.</li>
+    <li>Instala el paquete NuGet <code>MySqlConnector</code>, versión 2.4.0.</li>
+    <li>Crea la carpeta <code>Recursos</code> en el proyecto y copia ahí <code>logo-uni.png</code>.</li>
+    <li>Doble clic en el proyecto para abrir el <code>.vbproj</code> y déjalo así (punto de entrada propio, igual que en GestionAlumnos):</li>
+  </ol>
+  <div class="codigo"><div class="arch"><span>ReporteImpresion.vbproj</span><button type="button">Copiar</button></div><pre class="xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
+
+  &lt;PropertyGroup&gt;
+    &lt;OutputType&gt;WinExe&lt;/OutputType&gt;
+    &lt;TargetFramework&gt;net10.0-windows&lt;/TargetFramework&gt;
+    &lt;UseWindowsForms&gt;true&lt;/UseWindowsForms&gt;
+    &lt;RootNamespace&gt;ReporteImpresion&lt;/RootNamespace&gt;
+    &lt;!-- Punto de entrada explícito (Program.vb), igual que en GestionAlumnos --&gt;
+    &lt;MyType&gt;WindowsFormsWithCustomSubMain&lt;/MyType&gt;
+    &lt;StartupObject&gt;ReporteImpresion.Program&lt;/StartupObject&gt;
+    &lt;OptionExplicit&gt;On&lt;/OptionExplicit&gt;
+    &lt;OptionStrict&gt;Off&lt;/OptionStrict&gt;
+    &lt;OptionInfer&gt;On&lt;/OptionInfer&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;PackageReference Include=&quot;MySqlConnector&quot; Version=&quot;2.4.0&quot; /&gt;
+  &lt;/ItemGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;Compile Update=&quot;FrmReporte.vb&quot;&gt;
+      &lt;SubType&gt;Form&lt;/SubType&gt;
+    &lt;/Compile&gt;
+  &lt;/ItemGroup&gt;
+
+  &lt;!-- Copia los logos a la carpeta de salida (bin\...\Recursos) --&gt;
+  &lt;ItemGroup&gt;
+    &lt;None Update=&quot;Recursos\*.png&quot;&gt;
+      &lt;CopyToOutputDirectory&gt;PreserveNewest&lt;/CopyToOutputDirectory&gt;
+    &lt;/None&gt;
+  &lt;/ItemGroup&gt;
+
+&lt;/Project&gt;</pre></div>
+  <div class="aviso"><strong>Por qué el bloque de Recursos:</strong> el programa busca el logo en la carpeta donde se ejecuta (<code>bin\Debug\net10.0-windows\Recursos</code>). Esa regla copia el archivo ahí en cada compilación.</div>
+  <label class="control"><input type="checkbox" data-ck="2"><span class="txt"><b>Control:</b> el paquete <code>MySqlConnector</code> aparece en <em>Dependencias → Paquetes</em> y la carpeta <code>Recursos</code> contiene el logo.</span></label>
+
+  <h3 id="p3">3. Diseño del formulario</h3>
+  <figure>
+    <svg viewBox="0 0 720 360" role="img" aria-label="Boceto del formulario FrmReporte con título, cuatro botones, grilla de datos, etiqueta de estado y bandeja de componentes">
+      <rect x="20" y="10" width="680" height="270" rx="6" fill="var(--papel)" stroke="var(--borde)" stroke-width="1.5"/>
+      <rect x="20" y="10" width="680" height="26" rx="6" fill="var(--niebla)"/>
+      <text x="32" y="28" font-size="12" fill="var(--tinta)">Reporte de alumnos – PrintDocument</text>
+      <text x="36" y="58" font-size="16" font-weight="700" fill="var(--tinta)">Listado de alumnos – Impresión</text>
+      <g font-size="12" fill="var(--tinta)" text-anchor="middle">
+        <rect x="36" y="80" width="110" height="28" rx="4" fill="var(--niebla)" stroke="var(--borde)"/><text x="91" y="98">Cargar datos</text>
+        <rect x="154" y="80" width="120" height="28" rx="4" fill="var(--niebla)" stroke="var(--borde)"/><text x="214" y="98">Configurar página</text>
+        <rect x="282" y="80" width="110" height="28" rx="4" fill="var(--niebla)" stroke="var(--borde)"/><text x="337" y="98">Vista previa</text>
+        <rect x="400" y="80" width="110" height="28" rx="4" fill="var(--niebla)" stroke="var(--borde)"/><text x="455" y="98">Imprimir</text>
+      </g>
+      <g font-size="10" fill="var(--acero)" text-anchor="middle" font-family="JetBrains Mono, monospace">
+        <text x="91" y="76">btnCargar</text><text x="214" y="76">btnConfigurar</text><text x="337" y="76">btnVistaPrevia</text><text x="455" y="76">btnImprimir</text>
+      </g>
+      <rect x="36" y="116" width="648" height="134" fill="var(--fondo)" stroke="var(--borde)"/>
+      <rect x="36" y="116" width="648" height="20" fill="var(--niebla)"/>
+      <g stroke="var(--borde)"><line x1="36" y1="156" x2="684" y2="156"/><line x1="36" y1="176" x2="684" y2="176"/><line x1="36" y1="196" x2="684" y2="196"/><line x1="36" y1="216" x2="684" y2="216"/><line x1="36" y1="236" x2="684" y2="236"/></g>
+      <text x="360" y="190" text-anchor="middle" font-size="12" fill="var(--acero)" font-family="JetBrains Mono, monospace">dgvAlumnos</text>
+      <text x="36" y="270" font-size="12" fill="var(--pizarra)">Sin datos cargados</text>
+      <text x="160" y="270" font-size="10" fill="var(--acero)" font-family="JetBrains Mono, monospace">← lblEstado</text>
+      <rect x="20" y="294" width="680" height="56" rx="6" fill="var(--niebla)" stroke="var(--borde)" stroke-dasharray="5 4"/>
+      <text x="32" y="312" font-size="11" fill="var(--pizarra)">Bandeja de componentes (no se ven al ejecutar)</text>
+      <g font-size="12" fill="var(--tinta)" font-family="JetBrains Mono, monospace">
+        <text x="40" y="336">pdReporte</text><text x="200" y="336">ppdVista</text><text x="350" y="336">psdPagina</text><text x="510" y="336">dlgImprimir</text>
+      </g>
+    </svg>
+  </figure>
+  <p>Propiedades del formulario: <code>Text</code> = “Reporte de alumnos – PrintDocument”, <code>ClientSize</code> = 900, 560, <code>StartPosition</code> = CenterScreen, <code>MinimumSize</code> = 760, 480.</p>
+  <div class="tabla"><table>
+    <tr><th>Control</th><th>(Name)</th><th>Propiedades</th></tr>
+    <tr><td>Label</td><td><code>lblTitulo</code></td><td>Text: “Listado de alumnos – Impresión”; Font: Segoe UI 14 negrita</td></tr>
+    <tr><td>Button</td><td><code>btnCargar</code></td><td>Text: “Cargar datos”; Size: 150, 34</td></tr>
+    <tr><td>Button</td><td><code>btnConfigurar</code></td><td>Text: “Configurar página”; Size: 150, 34</td></tr>
+    <tr><td>Button</td><td><code>btnVistaPrevia</code></td><td>Text: “Vista previa”; Size: 150, 34</td></tr>
+    <tr><td>Button</td><td><code>btnImprimir</code></td><td>Text: “Imprimir”; Size: 150, 34</td></tr>
+    <tr><td>DataGridView</td><td><code>dgvAlumnos</code></td><td>Anchor: Top, Bottom, Left, Right; AutoSizeColumnsMode: Fill; ReadOnly: True; AllowUserToAddRows: False; RowHeadersVisible: False; SelectionMode: FullRowSelect</td></tr>
+    <tr><td>Label</td><td><code>lblEstado</code></td><td>Text: “Sin datos cargados”; Anchor: Bottom, Left</td></tr>
+    <tr><td>PrintDocument</td><td><code>pdReporte</code></td><td>DocumentName: “Listado de alumnos”</td></tr>
+    <tr><td>PrintPreviewDialog</td><td><code>ppdVista</code></td><td>Document: pdReporte; UseAntiAlias: True</td></tr>
+    <tr><td>PageSetupDialog</td><td><code>psdPagina</code></td><td>Document: pdReporte; EnableMetric: True</td></tr>
+    <tr><td>PrintDialog</td><td><code>dlgImprimir</code></td><td>Document: pdReporte; UseEXDialog: True</td></tr>
+  </table></div>
+  <div class="aviso"><strong>Conexión entre componentes:</strong> los tres diálogos apuntan al mismo <code>pdReporte</code> mediante su propiedad <code>Document</code>. Así, lo que se configura en uno lo usan los demás.</div>
+  <label class="control"><input type="checkbox" data-ck="3"><span class="txt"><b>Control:</b> los cuatro componentes de impresión aparecen en la bandeja y los tres diálogos tienen <code>Document = pdReporte</code>.</span></label>
+
+  <h3 id="p4">4. Program y conexión</h3>
+  <p>Agrega dos módulos: clic derecho en el proyecto → <strong>Agregar → Módulo</strong>.</p>
+  <div class="codigo"><div class="arch"><span>Program.vb</span><button type="button">Copiar</button></div><pre class="vb">Imports System.Windows.Forms
+
+&#x27; Punto de entrada de la aplicación.
+Module Program
+
+    &lt;STAThread&gt;
+    Sub Main()
+        Application.SetHighDpiMode(HighDpiMode.SystemAware)
+        Application.EnableVisualStyles()
+        Application.SetCompatibleTextRenderingDefault(False)
+        Application.Run(New FrmReporte())
+    End Sub
+
+End Module</pre></div>
+  <div class="codigo"><div class="arch"><span>ConexionBD.vb</span><button type="button">Copiar</button></div><pre class="vb">Imports MySqlConnector
+
+&#x27; Cadena de conexión centralizada.
+&#x27; ⚠ Ajusta Uid y Pwd con tus credenciales de MariaDB antes de ejecutar.
+Module ConexionBD
+
+    Public ReadOnly CadenaConexion As String =
+        &quot;Server=localhost;Port=3306;Database=reportes_pae;Uid=root;Pwd=TU_CLAVE;&quot;
+
+    Public Function ObtenerConexion() As MySqlConnection
+        Return New MySqlConnection(CadenaConexion)
+    End Function
+
+End Module</pre></div>
+  <label class="control"><input type="checkbox" data-ck="4"><span class="txt"><b>Control:</b> cambiaste <code>Uid</code> y <code>Pwd</code> por tus credenciales de MariaDB.</span></label>
+
+  <h3 id="p5">5. Código del formulario</h3>
+  <p>Abre <code>FrmReporte.vb</code> (F7). El código se organiza en cinco regiones; escríbelo región por región, dentro de la clase.</p>
+  <div class="codigo"><div class="arch"><span>FrmReporte.vb, estructura</span><button type="button">Copiar</button></div><pre class="vb">Imports System.Drawing
+Imports System.Drawing.Printing
+Imports System.IO
+Imports System.Windows.Forms
+Imports MySqlConnector
+
+Public Class FrmReporte
+
+    &#x27; Aquí van las regiones 1 a 5
+
+End Class</pre></div>
+
+  <p><strong>Región 1. Variables.</strong> Guardan los datos, el estado de la paginación y los recursos de dibujo. <code>proporciones</code> reparte el ancho de la página entre las columnas y debe sumar 1.0.</p>
+  <div class="codigo"><div class="arch"><span>FrmReporte.vb, región 1</span><button type="button">Copiar</button></div><pre class="vb">#Region &quot;1. Variables del formulario&quot;
+
+    &#x27; Datos que se mostrarán en la grilla y se imprimirán
+    Private tablaAlumnos As New DataTable()
+
+    &#x27; Control de paginación: en qué fila vamos y qué página dibujamos
+    Private filaActual As Integer = 0
+    Private numeroPagina As Integer = 0
+
+    &#x27; Recursos de dibujo: se crean en BeginPrint y se liberan en EndPrint
+    Private fuenteTitulo As Font
+    Private fuenteEncabezado As Font
+    Private fuenteDetalle As Font
+    Private fuentePie As Font
+    Private logo As Image
+
+    &#x27; Definición de columnas del reporte (campo, título y ancho relativo)
+    Private ReadOnly columnas() As String = {&quot;carnet&quot;, &quot;nombres&quot;, &quot;apellidos&quot;, &quot;carrera&quot;, &quot;promedio&quot;}
+    Private ReadOnly titulos() As String = {&quot;Carnet&quot;, &quot;Nombres&quot;, &quot;Apellidos&quot;, &quot;Carrera&quot;, &quot;Promedio&quot;}
+    Private ReadOnly proporciones() As Single = {0.14F, 0.22F, 0.22F, 0.3F, 0.12F}   &#x27; suman 1.0
+
+    Private ReadOnly colorAzul As Color = Color.FromArgb(0, 58, 128)
+
+#End Region</pre></div>
+
+  <p><strong>Región 2. Carga de datos.</strong> El patrón que ya conoces: <code>MySqlDataAdapter → DataTable → DataGridView</code>. Los botones de impresión se habilitan solo cuando hay registros.</p>
+  <div class="codigo"><div class="arch"><span>FrmReporte.vb, región 2</span><button type="button">Copiar</button></div><pre class="vb">#Region &quot;2. Carga de datos&quot;
+
+    Private Sub FrmReporte_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        &#x27; Márgenes en centésimas de pulgada (60 = 0.6&quot;)
+        pdReporte.DefaultPageSettings.Margins = New Margins(60, 60, 60, 80)
+        HabilitarImpresion(False)
+    End Sub
+
+    Private Sub btnCargar_Click(sender As Object, e As EventArgs) Handles btnCargar.Click
+        Dim sql As String = &quot;SELECT carnet, nombres, apellidos, carrera, promedio &quot; &amp;
+                            &quot;FROM alumnos ORDER BY apellidos, nombres&quot;
+        Try
+            Using cn As MySqlConnection = ObtenerConexion()
+                Using da As New MySqlDataAdapter(sql, cn)
+                    tablaAlumnos = New DataTable()
+                    da.Fill(tablaAlumnos)          &#x27; el adaptador abre y cierra la conexión
+                End Using
+            End Using
+
+            dgvAlumnos.DataSource = tablaAlumnos
+            lblEstado.Text = &quot;Registros cargados: &quot; &amp; tablaAlumnos.Rows.Count
+            HabilitarImpresion(tablaAlumnos.Rows.Count &gt; 0)
+
+        Catch ex As MySqlException
+            MessageBox.Show(&quot;Error al consultar MariaDB:&quot; &amp; vbCrLf &amp; ex.Message,
+                            &quot;Base de datos&quot;, MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub HabilitarImpresion(valor As Boolean)
+        btnConfigurar.Enabled = valor
+        btnVistaPrevia.Enabled = valor
+        btnImprimir.Enabled = valor
+    End Sub
+
+#End Region</pre></div>
+
+  <p><strong>Región 3. Botones de impresión.</strong> Cada botón solo abre un diálogo; ninguno dibuja. El dibujo ocurre en los eventos del documento.</p>
+  <div class="codigo"><div class="arch"><span>FrmReporte.vb, región 3</span><button type="button">Copiar</button></div><pre class="vb">#Region &quot;3. Botones de impresión&quot;
+
+    Private Sub btnConfigurar_Click(sender As Object, e As EventArgs) Handles btnConfigurar.Click
+        &#x27; Modifica pdReporte.DefaultPageSettings (papel, orientación, márgenes)
+        psdPagina.ShowDialog(Me)
+    End Sub
+
+    Private Sub btnVistaPrevia_Click(sender As Object, e As EventArgs) Handles btnVistaPrevia.Click
+        ppdVista.WindowState = FormWindowState.Maximized
+        ppdVista.ShowDialog(Me)          &#x27; dispara BeginPrint → PrintPage… → EndPrint
+    End Sub
+
+    Private Sub btnImprimir_Click(sender As Object, e As EventArgs) Handles btnImprimir.Click
+        If dlgImprimir.ShowDialog(Me) = DialogResult.OK Then
+            Try
+                pdReporte.Print()            &#x27; vuelve a disparar BeginPrint → PrintPage… → EndPrint
+                lblEstado.Text = &quot;Documento enviado a: &quot; &amp; pdReporte.PrinterSettings.PrinterName
+            Catch ex As InvalidPrinterException
+                MessageBox.Show(&quot;Impresora no válida: &quot; &amp; ex.Message, &quot;Impresión&quot;,
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            End Try
+        End If
+    End Sub
+
+#End Region</pre></div>
+
+  <p><strong>Región 4. Eventos del PrintDocument.</strong> El corazón de la práctica. En <code>PrintPage</code> identifica las cinco partes (a–e) de la figura de la página.</p>
+  <div class="codigo"><div class="arch"><span>FrmReporte.vb, región 4</span><button type="button">Copiar</button></div><pre class="vb">#Region &quot;4. Eventos del PrintDocument&quot;
+
+    &#x27; Se ejecuta UNA vez, antes de la primera página
+    Private Sub pdReporte_BeginPrint(sender As Object, e As PrintEventArgs) Handles pdReporte.BeginPrint
+        filaActual = 0                   &#x27; ¡clave! reinicia la paginación en cada impresión
+        numeroPagina = 0
+
+        fuenteTitulo = New Font(&quot;Segoe UI&quot;, 16, FontStyle.Bold)
+        fuenteEncabezado = New Font(&quot;Segoe UI&quot;, 10, FontStyle.Bold)
+        fuenteDetalle = New Font(&quot;Segoe UI&quot;, 10)
+        fuentePie = New Font(&quot;Segoe UI&quot;, 8)
+
+        Dim rutaLogo As String = Path.Combine(Application.StartupPath, &quot;Recursos&quot;, &quot;logo-uni.png&quot;)
+        If File.Exists(rutaLogo) Then logo = Image.FromFile(rutaLogo)
+    End Sub
+
+    &#x27; Se ejecuta UNA vez POR CADA página
+    Private Sub pdReporte_PrintPage(sender As Object, e As PrintPageEventArgs) Handles pdReporte.PrintPage
+        Dim g As Graphics = e.Graphics
+        Dim area As Rectangle = e.MarginBounds      &#x27; zona útil dentro de los márgenes
+        Dim y As Single = area.Top                  &#x27; &quot;cursor&quot; vertical
+        numeroPagina += 1
+
+        Using fIzq As New StringFormat(), fDer As New StringFormat(), fCen As New StringFormat()
+            ConfigurarFormato(fIzq, StringAlignment.Near)
+            ConfigurarFormato(fDer, StringAlignment.Far)
+            ConfigurarFormato(fCen, StringAlignment.Center)
+
+            &#x27; ---- a) Encabezado: logo + título + institución y fecha ----
+            Const ALTO_ENCABEZADO As Single = 55
+            If logo IsNot Nothing Then
+                Dim anchoLogo As Single = logo.Width * ALTO_ENCABEZADO / logo.Height
+                g.DrawImage(logo, area.Left, y, anchoLogo, ALTO_ENCABEZADO)
+            End If
+            g.DrawString(&quot;Listado de Alumnos&quot;, fuenteTitulo, Brushes.Black,
+                         New RectangleF(area.Left, y, area.Width, 30), fCen)
+            g.DrawString(&quot;Universidad Nacional de Ingeniería · &quot; &amp; Date.Now.ToString(&quot;dd/MM/yyyy&quot;),
+                         fuentePie, Brushes.DimGray,
+                         New RectangleF(area.Left, y + 30, area.Width, 20), fCen)
+            y += ALTO_ENCABEZADO + 10
+
+            &#x27; ---- b) Fila de títulos de columna ----
+            Dim altoFila As Single = fuenteDetalle.GetHeight(g) + 8
+            Using fondoTitulos As New SolidBrush(colorAzul)
+                g.FillRectangle(fondoTitulos, area.Left, y, area.Width, altoFila)
+            End Using
+            DibujarFila(g, titulos, fuenteEncabezado, Brushes.White, area, y, altoFila, fIzq, fDer)
+            y += altoFila
+
+            &#x27; ---- c) Filas de detalle: mientras haya datos Y quepan en la página ----
+            Using fondoAlterno As New SolidBrush(Color.FromArgb(235, 240, 248))
+                Do While filaActual &lt; tablaAlumnos.Rows.Count AndAlso y + altoFila &lt;= area.Bottom
+                    Dim fila As DataRow = tablaAlumnos.Rows(filaActual)
+
+                    If filaActual Mod 2 = 1 Then
+                        g.FillRectangle(fondoAlterno, area.Left, y, area.Width, altoFila)
+                    End If
+
+                    Dim valores(columnas.Length - 1) As String
+                    For i As Integer = 0 To columnas.Length - 1
+                        valores(i) = fila(columnas(i)).ToString()
+                    Next
+                    DibujarFila(g, valores, fuenteDetalle, Brushes.Black, area, y, altoFila, fIzq, fDer)
+
+                    y += altoFila
+                    filaActual += 1
+                Loop
+            End Using
+            g.DrawLine(Pens.Gray, area.Left, y, area.Right, y)
+
+            &#x27; ---- d) Pie de página (se dibuja dentro del margen inferior) ----
+            Dim yPie As Single = area.Bottom + 10
+            g.DrawLine(Pens.LightGray, area.Left, yPie, area.Right, yPie)
+            Dim rectPie As New RectangleF(area.Left, yPie + 4, area.Width, 20)
+            g.DrawString(&quot;Programación de Aplicaciones de Escritorio&quot;, fuentePie, Brushes.DimGray, rectPie, fIzq)
+            g.DrawString(&quot;Página &quot; &amp; numeroPagina, fuentePie, Brushes.DimGray, rectPie, fDer)
+
+            &#x27; ---- e) ¿Quedan filas? → otra página ----
+            e.HasMorePages = filaActual &lt; tablaAlumnos.Rows.Count
+            If Not e.HasMorePages Then
+                g.DrawString(&quot;Total de alumnos: &quot; &amp; tablaAlumnos.Rows.Count,
+                             fuentePie, Brushes.DimGray, rectPie, fCen)
+            End If
+        End Using
+    End Sub
+
+    &#x27; Se ejecuta UNA vez, al terminar la última página
+    Private Sub pdReporte_EndPrint(sender As Object, e As PrintEventArgs) Handles pdReporte.EndPrint
+        fuenteTitulo?.Dispose()
+        fuenteEncabezado?.Dispose()
+        fuenteDetalle?.Dispose()
+        fuentePie?.Dispose()
+        logo?.Dispose()
+        logo = Nothing
+    End Sub
+
+#End Region</pre></div>
+  <div class="aviso alerta"><strong>Atención:</strong> si no reinicias <code>filaActual</code> en <code>BeginPrint</code>, la vista previa se ve bien, pero la impresión posterior sale sin filas porque el contador quedó al final de la tabla.</div>
+
+  <p><strong>Región 5. Métodos auxiliares.</strong> <code>DibujarFila</code> evita repetir el ciclo de columnas para títulos y detalle. <code>ConfigurarFormato</code> define la alineación y agrega “…” cuando un texto no cabe en su celda.</p>
+  <div class="codigo"><div class="arch"><span>FrmReporte.vb, región 5</span><button type="button">Copiar</button></div><pre class="vb">#Region &quot;5. Métodos auxiliares de dibujo&quot;
+
+    &#x27; Dibuja una fila de celdas repartiendo el ancho según &quot;proporciones&quot;
+    Private Sub DibujarFila(g As Graphics, textos() As String, fuente As Font, pincel As Brush,
+                            area As Rectangle, y As Single, alto As Single,
+                            fIzq As StringFormat, fDer As StringFormat)
+        Dim x As Single = area.Left
+        For i As Integer = 0 To textos.Length - 1
+            Dim ancho As Single = area.Width * proporciones(i)
+            Dim celda As New RectangleF(x + 4, y, ancho - 8, alto)
+            &#x27; La última columna (Promedio) es numérica: se alinea a la derecha
+            Dim formato As StringFormat = If(i = textos.Length - 1, fDer, fIzq)
+            g.DrawString(textos(i), fuente, pincel, celda, formato)
+            x += ancho
+        Next
+    End Sub
+
+    &#x27; Alineación horizontal + centrado vertical + &quot;…&quot; si el texto no cabe
+    Private Sub ConfigurarFormato(f As StringFormat, alineacion As StringAlignment)
+        f.Alignment = alineacion
+        f.LineAlignment = StringAlignment.Center
+        f.Trimming = StringTrimming.EllipsisCharacter
+        f.FormatFlags = StringFormatFlags.NoWrap
+    End Sub
+
+#End Region</pre></div>
+  <label class="control"><input type="checkbox" data-ck="5"><span class="txt"><b>Control:</b> el proyecto compila (Ctrl+Shift+B) sin errores.</span></label>
+
+  <h3 id="p6">6. Probar</h3>
+  <ol class="pasos">
+    <li>F5 → <strong>Cargar datos</strong>: la grilla muestra 60 registros y se habilitan los otros tres botones.</li>
+    <li><strong>Vista previa</strong>: deben verse 2 páginas en Carta vertical, con logo, título, tabla con filas alternas y “Página 1” y “Página 2” en el pie. La última página muestra “Total de alumnos: 60”.</li>
+    <li><strong>Configurar página</strong> → Horizontal → <strong>Vista previa</strong>: ahora son 3 páginas. Compáralo con la calculadora.</li>
+    <li><strong>Imprimir</strong> → elige <em>Microsoft Print to PDF</em> → guarda el archivo y ábrelo.</li>
+  </ol>
+  <label class="control"><input type="checkbox" data-ck="6"><span class="txt"><b>Control:</b> el PDF generado tiene las mismas páginas que la vista previa.</span></label>
+</section>
+
+<section id="refuerzo">
+  <h2>Ejercicio en clase</h2>
+  <p><strong>Filtrar por carrera antes de imprimir.</strong></p>
+  <ol class="pasos">
+    <li>Agrega un <code>ComboBox</code> llamado <code>cboCarrera</code> (DropDownStyle: DropDownList) junto a los botones.</li>
+    <li>En <code>Load</code>, llénalo con “(Todas)” y el resultado de <code>SELECT DISTINCT carrera FROM alumnos ORDER BY carrera</code>.</li>
+    <li>En <code>btnCargar_Click</code>, si la opción no es “(Todas)”, agrega <code>WHERE carrera = @carrera</code> antes del <code>ORDER BY</code> y el parámetro con <code>da.SelectCommand.Parameters.AddWithValue("@carrera", cboCarrera.Text)</code>.</li>
+    <li>En el encabezado del reporte, haz que la segunda línea muestre la carrera filtrada.</li>
+  </ol>
+  <p>Resultado esperado: al filtrar una carrera, el reporte cabe en una sola página y el encabezado indica qué carrera se imprimió.</p>
+</section>
+
+<section id="errores">
+  <h2>Errores comunes</h2>
+  <div class="tabla"><table>
+    <tr><th>Síntoma</th><th>Causa</th><th>Solución</th></tr>
+    <tr><td>La vista previa sale bien, pero la impresión sale sin filas.</td><td><code>filaActual</code> no se reinició.</td><td>Ponlo en 0 dentro de <code>BeginPrint</code>, no en <code>Load</code>.</td></tr>
+    <tr><td>La vista previa nunca termina de generar páginas.</td><td><code>HasMorePages</code> siempre queda en <code>True</code>.</td><td>Incrementa <code>filaActual</code> dentro del ciclo y compáralo con <code>Rows.Count</code>.</td></tr>
+    <tr><td>Todas las filas se dibujan una sobre otra.</td><td>No se suma el alto a <code>y</code>.</td><td><code>y += altoFila</code> al final de cada fila.</td></tr>
+    <tr><td>Los márgenes cambian solos cada vez que abres <em>Configurar página</em>.</td><td>Conversión entre milímetros y pulgadas.</td><td><code>psdPagina.EnableMetric = True</code>.</td></tr>
+    <tr><td>El logo no aparece.</td><td>El archivo no está en <code>bin\…\Recursos</code> o tiene otro nombre.</td><td>Revisa el bloque <code>None Update</code> del <code>.vbproj</code> y el nombre <code>logo-uni.png</code>.</td></tr>
+    <tr><td>El cuadro <em>Imprimir</em> no aparece.</td><td>Diálogo clásico en sistemas de 64 bits.</td><td><code>dlgImprimir.UseEXDialog = True</code>.</td></tr>
+    <tr><td>No hay impresora en el laboratorio.</td><td>No es un error.</td><td>Elige <em>Microsoft Print to PDF</em>.</td></tr>
+    <tr><td><code>MySqlException</code> al cargar.</td><td>Credenciales incorrectas o servicio de MariaDB detenido.</td><td>Revisa <code>ConexionBD.vb</code> y que el servicio esté iniciado.</td></tr>
+  </table></div>
+</section>
+
+<section id="tarea">
+  <h2>Tarea</h2>
+  <p>Partiendo de tu proyecto:</p>
+  <ol class="pasos">
+    <li>Imprime el <strong>promedio general</strong> del grupo en la última página, debajo de la tabla. Pista: <code>tablaAlumnos.Compute("AVG(promedio)", "")</code>.</li>
+    <li>Dibuja en <strong>rojo</strong> los promedios menores de 75. Pista: elige el pincel antes de llamar a <code>DibujarFila</code>.</li>
+    <li>Agrega un <code>CheckBox</code> “Horizontal” que cambie <code>pdReporte.DefaultPageSettings.Landscape</code> antes de la vista previa.</li>
+  </ol>
+  <p>Súbela al repositorio en <code>01-PrintDocument/entregas/&lt;nombre-del-equipo&gt;/</code>.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+  var kw="Imports|Public|Private|Friend|Class|Module|End|Sub|Function|Dim|As|New|If|Then|Else|ElseIf|For|Each|To|Next|Do|While|Loop|Using|Return|Try|Catch|Finally|Handles|Const|ReadOnly|Not|AndAlso|OrElse|And|Or|Mod|Of|Is|IsNot|Nothing|True|False|ByVal|WithEvents|Inherits|Partial|Overrides|Protected|String|Integer|Single|Boolean|Object|Me|MyBase";
+  var re=new RegExp("('[^\\n]*)|(\"(?:[^\"\\n]|\"\")*\")|(#(?:Region|End Region)[^\\n]*)|\\b("+kw+")\\b","g");
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  document.querySelectorAll("pre.vb").forEach(function(p){
+    var t=p.textContent,o="",i=0,m;re.lastIndex=0;
+    while((m=re.exec(t))){o+=esc(t.slice(i,m.index));
+      var c=m[1]?"c":m[2]?"s":m[3]?"r":"k";o+='<span class="'+c+'">'+esc(m[0])+'</span>';i=re.lastIndex;}
+    p.innerHTML=o+esc(t.slice(i));
+  });
+  document.querySelectorAll(".codigo button").forEach(function(b){
+    b.addEventListener("click",function(){
+      var txt=b.closest(".codigo").querySelector("pre").textContent;
+      if(!navigator.clipboard)return;
+      navigator.clipboard.writeText(txt).then(function(){b.textContent="Copiado";setTimeout(function(){b.textContent="Copiar"},1500);});
+    });
+  });
+  function lee(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  function guarda(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  var root=document.documentElement,bt=document.getElementById("btnTema");
+  function oscuroActivo(){var a=root.getAttribute("data-theme");return a?a==="dark":matchMedia("(prefers-color-scheme: dark)").matches;}
+  function etiqueta(){bt.textContent=oscuroActivo()?"Claro":"Oscuro";}
+  var t=lee("pae-tema");if(t)root.setAttribute("data-theme",t);etiqueta();
+  bt.addEventListener("click",function(){var n=oscuroActivo()?"light":"dark";root.setAttribute("data-theme",n);guarda("pae-tema",n);etiqueta();});
+  var fs=parseInt(lee("pae-fs")||"18",10);
+  function aplica(){root.style.setProperty("--fs",fs+"px");guarda("pae-fs",fs);}
+  aplica();
+  document.getElementById("aMas").onclick=function(){fs=Math.min(fs+2,28);aplica();};
+  document.getElementById("aMenos").onclick=function(){fs=Math.max(fs-2,14);aplica();};
+  document.getElementById("aBase").onclick=function(){fs=18;aplica();};
+  var ind=document.getElementById("indice");
+  document.getElementById("btnMenu").onclick=function(){ind.classList.toggle("abierto");};
+  ind.addEventListener("click",function(e){if(e.target.tagName==="A")ind.classList.remove("abierto");});
+  var barra=document.getElementById("progreso");
+  var enlaces=[].slice.call(ind.querySelectorAll("a"));
+  var objetivos=enlaces.map(function(a){return document.querySelector(a.getAttribute("href"));});
+  function alDesplazar(){
+    var h=document.documentElement.scrollHeight-innerHeight;
+    barra.style.width=(h>0?scrollY/h*100:0)+"%";
+    var act=0;objetivos.forEach(function(el,i){if(el&&el.getBoundingClientRect().top<140)act=i;});
+    enlaces.forEach(function(a,i){a.classList.toggle("activo",i===act);});
+  }
+  addEventListener("scroll",alDesplazar,{passive:true});alDesplazar();
+  document.querySelectorAll("[data-ck]").forEach(function(c){
+    var k="pae-ck-"+c.dataset.ck;c.checked=lee(k)==="1";
+    c.addEventListener("change",function(){guarda(k,c.checked?"1":"0");});
+  });
+  if(document.getElementById("calc")){
+  function v(id){return document.getElementById(id).value;}
+  function calc(){
+    var p=v("cPapel").split("x").map(Number);
+    var alto=v("cOri")==="v"?p[1]:p[0];
+    var util=alto-(+v("cSup")||0)-(+v("cInf")||0);
+    var fila=Math.max(1,+v("cFila")||1),reg=Math.max(0,+v("cReg")||0);
+    var filas=Math.max(0,Math.floor((util-65-fila)/fila));
+    document.getElementById("rArea").textContent=util;
+    document.getElementById("rFilas").textContent=filas;
+    document.getElementById("rPag").textContent=filas>0?Math.max(1,Math.ceil(reg/filas)):"no caben";
+  }
+  ["cPapel","cOri","cSup","cInf","cFila","cReg"].forEach(function(i){document.getElementById(i).addEventListener("input",calc);});calc();
+  }
+  /*EXTRA_JS*/
+})();
+</script>
+</body>
+</html>
