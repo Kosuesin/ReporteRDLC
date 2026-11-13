@@ -26,6 +26,7 @@ Partial Class FrmReporte
     Friend WithEvents cboCarrera As System.Windows.Forms.ComboBox
     Friend WithEvents dgvAlumnos As System.Windows.Forms.DataGridView
     Friend WithEvents lblEstado As System.Windows.Forms.Label
+    Friend WithEvents chkHorizontal As System.Windows.Forms.CheckBox
 
     ' Componentes de impresión (bandeja de componentes)
     Friend WithEvents pdReporte As System.Drawing.Printing.PrintDocument
@@ -45,6 +46,7 @@ Partial Class FrmReporte
         Me.cboCarrera = New System.Windows.Forms.ComboBox()
         Me.dgvAlumnos = New System.Windows.Forms.DataGridView()
         Me.lblEstado = New System.Windows.Forms.Label()
+        Me.chkHorizontal = New System.Windows.Forms.CheckBox()
         Me.pdReporte = New System.Drawing.Printing.PrintDocument()
         Me.ppdVista = New System.Windows.Forms.PrintPreviewDialog()
         Me.psdPagina = New System.Windows.Forms.PageSetupDialog()
@@ -150,6 +152,16 @@ Partial Class FrmReporte
         Me.lblEstado.TabIndex = 8
         Me.lblEstado.Text = "Sin datos cargados"
         '
+        ' chkHorizontal
+        '
+        Me.chkHorizontal.AutoSize = True
+        Me.chkHorizontal.Location = New System.Drawing.Point(660, 63)
+        Me.chkHorizontal.Name = "chkHorizontal"
+        Me.chkHorizontal.Size = New System.Drawing.Size(84, 19)
+        Me.chkHorizontal.TabIndex = 9
+        Me.chkHorizontal.Text = "Horizontal"
+        Me.chkHorizontal.UseVisualStyleBackColor = True
+        '
         ' pdReporte
         '
         Me.pdReporte.DocumentName = "Listado de alumnos"
@@ -181,6 +193,7 @@ Partial Class FrmReporte
         Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 15.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(900, 560)
+        Me.Controls.Add(Me.chkHorizontal)
         Me.Controls.Add(Me.lblEstado)
         Me.Controls.Add(Me.dgvAlumnos)
         Me.Controls.Add(Me.btnImprimir)

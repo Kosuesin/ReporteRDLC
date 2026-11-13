@@ -25,6 +25,9 @@ Public Class FrmReporte
     ' Carrera que se está imprimiendo (para mostrarla en el encabezado)
     Private carreraImpresion As String = "Todas las carreras"
 
+    ' Promedio general de los datos cargados (se calcula en BeginPrint)
+    Private promedioGeneral As Decimal = 0D
+
     ' Definición de columnas del reporte (campo, título y ancho relativo)
     Private ReadOnly columnas() As String = {"carnet", "nombres", "apellidos", "carrera", "promedio"}
     Private ReadOnly titulos() As String = {"Carnet", "Nombres", "Apellidos", "Carrera", "Promedio"}
@@ -109,6 +112,12 @@ Public Class FrmReporte
     Private Sub btnConfigurar_Click(sender As Object, e As EventArgs) Handles btnConfigurar.Click
         ' Modifica pdReporte.DefaultPageSettings (papel, orientación, márgenes)
         psdPagina.ShowDialog(Me)
+        chkHorizontal.Checked = pdReporte.DefaultPageSettings.Landscape
+    End Sub
+
+    Private Sub chkHorizontal_CheckedChanged(sender As Object, e As EventArgs) Handles chkHorizontal.CheckedChanged
+        ' La orientación se aplica antes de la vista previa y de la impresión
+        pdReporte.DefaultPageSettings.Landscape = chkHorizontal.Checked
     End Sub
 
     Private Sub btnVistaPrevia_Click(sender As Object, e As EventArgs) Handles btnVistaPrevia.Click
@@ -141,6 +150,13 @@ Public Class FrmReporte
         fuenteEncabezado = New Font("Segoe UI", 10, FontStyle.Bold)
         fuenteDetalle = New Font("Segoe UI", 10)
         fuentePie = New Font("Segoe UI", 8)
+
+        ' Promedio general del grupo (para la última página)
+        promedioGeneral = 0D
+        If tablaAlumnos.Rows.Count > 0 AndAlso tablaAlumnos.Columns.Contains("promedio") Then
+            Dim valor As Object = tablaAlumnos.Compute("AVG(promedio)", "")
+            If valor IsNot DBNull.Value Then promedioGeneral = Convert.ToDecimal(valor)
+        End If
 
         Dim rutaLogo As String = Path.Combine(Application.StartupPath, "Recursos", "logo-uni.png")
         If File.Exists(rutaLogo) Then logo = Image.FromFile(rutaLogo)
@@ -186,8 +202,14 @@ Public Class FrmReporte
             y += altoFila
 
             ' ---- c) Filas de detalle: mientras haya datos Y quepan en la página ----
+            ' Si es la última página, se reserva el alto de una fila para el promedio general.
+            Dim filasQueCaben As Integer = CInt(Math.Floor((area.Bottom - y) / altoFila))
+            Dim filasRestantes As Integer = tablaAlumnos.Rows.Count - filaActual
+            Dim esUltimaPagina As Boolean = filasRestantes <= filasQueCaben
+            Dim limiteInferior As Single = If(esUltimaPagina, area.Bottom - altoFila - 6, area.Bottom)
+
             Using fondoAlterno As New SolidBrush(Color.FromArgb(235, 240, 248))
-                Do While filaActual < tablaAlumnos.Rows.Count AndAlso y + altoFila <= area.Bottom
+                Do While filaActual < tablaAlumnos.Rows.Count AndAlso y + altoFila <= limiteInferior
                     Dim fila As DataRow = tablaAlumnos.Rows(filaActual)
 
                     If filaActual Mod 2 = 1 Then
@@ -198,7 +220,15 @@ Public Class FrmReporte
                     For i As Integer = 0 To columnas.Length - 1
                         valores(i) = fila(columnas(i)).ToString()
                     Next
-                    DibujarFila(g, valores, fuenteDetalle, Brushes.Black, area, y, altoFila, fIzq, fDer)
+
+                    ' Los promedios menores de 75 se dibujan en rojo
+                    Dim pincelPromedio As Brush = Brushes.Black
+                    Dim valorPromedio As Decimal
+                    If Decimal.TryParse(fila("promedio").ToString(), valorPromedio) AndAlso valorPromedio < 75D Then
+                        pincelPromedio = Brushes.Firebrick
+                    End If
+
+                    DibujarFila(g, valores, fuenteDetalle, Brushes.Black, area, y, altoFila, fIzq, fDer, pincelPromedio)
 
                     y += altoFila
                     filaActual += 1
@@ -206,15 +236,22 @@ Public Class FrmReporte
             End Using
             g.DrawLine(Pens.Gray, area.Left, y, area.Right, y)
 
-            ' ---- d) Pie de página (se dibuja dentro del margen inferior) ----
+            ' ---- d) Promedio general en la última página, debajo de la tabla ----
+            e.HasMorePages = filaActual < tablaAlumnos.Rows.Count
+            If Not e.HasMorePages Then
+                g.DrawString("Promedio general del grupo: " & promedioGeneral.ToString("N2"),
+                             fuenteEncabezado, Brushes.Black,
+                             New RectangleF(area.Left, y + 6, area.Width, altoFila), fDer)
+            End If
+
+            ' ---- e) Pie de página (se dibuja dentro del margen inferior) ----
             Dim yPie As Single = area.Bottom + 10
             g.DrawLine(Pens.LightGray, area.Left, yPie, area.Right, yPie)
             Dim rectPie As New RectangleF(area.Left, yPie + 4, area.Width, 20)
             g.DrawString("Programación de Aplicaciones de Escritorio", fuentePie, Brushes.DimGray, rectPie, fIzq)
             g.DrawString("Página " & numeroPagina, fuentePie, Brushes.DimGray, rectPie, fDer)
 
-            ' ---- e) ¿Quedan filas? → otra página ----
-            e.HasMorePages = filaActual < tablaAlumnos.Rows.Count
+            ' ---- f) ¿Quedan filas? → otra página ----
             If Not e.HasMorePages Then
                 g.DrawString("Total de alumnos: " & tablaAlumnos.Rows.Count,
                              fuentePie, Brushes.DimGray, rectPie, fCen)
@@ -236,17 +273,23 @@ Public Class FrmReporte
 
 #Region "5. Métodos auxiliares de dibujo"
 
-    ' Dibuja una fila de celdas repartiendo el ancho según "proporciones"
+    ' Dibuja una fila de celdas repartiendo el ancho según "proporciones".
+    ' pincelPromedio permite pintar de rojo solo la última columna (Promedio).
     Private Sub DibujarFila(g As Graphics, textos() As String, fuente As Font, pincel As Brush,
                             area As Rectangle, y As Single, alto As Single,
-                            fIzq As StringFormat, fDer As StringFormat)
+                            fIzq As StringFormat, fDer As StringFormat,
+                            Optional pincelPromedio As Brush = Nothing)
         Dim x As Single = area.Left
         For i As Integer = 0 To textos.Length - 1
             Dim ancho As Single = area.Width * proporciones(i)
             Dim celda As New RectangleF(x + 4, y, ancho - 8, alto)
             ' La última columna (Promedio) es numérica: se alinea a la derecha
             Dim formato As StringFormat = If(i = textos.Length - 1, fDer, fIzq)
-            g.DrawString(textos(i), fuente, pincel, celda, formato)
+            Dim pincelCelda As Brush = pincel
+            If i = textos.Length - 1 AndAlso pincelPromedio IsNot Nothing Then
+                pincelCelda = pincelPromedio
+            End If
+            g.DrawString(textos(i), fuente, pincelCelda, celda, formato)
             x += ancho
         Next
     End Sub
