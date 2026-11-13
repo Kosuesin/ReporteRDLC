@@ -1,0 +1,81 @@
+-- Base de datos de la práctica: listado de alumnos
+-- Ejecutar en HeidiSQL o en la consola de MariaDB.
+
+CREATE DATABASE IF NOT EXISTS reportes_pae
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE reportes_pae;
+
+DROP TABLE IF EXISTS alumnos;
+CREATE TABLE `alumnos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `carnet` varchar(12) NOT NULL,
+  `nombres` varchar(60) NOT NULL,
+  `apellidos` varchar(60) NOT NULL,
+  `carrera` varchar(60) NOT NULL,
+  `promedio` decimal(5,2) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `carnet` (`carnet`)
+) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- 60 registros de ejemplo
+INSERT INTO `alumnos` VALUES
+(1,'2025-1000U','Lucía Andrea','Espinoza Sandino','Ingeniería Industrial',84.22),
+(2,'2023-1017U','Luis Ángel','Picado Somarriba','Ingeniería en Sistemas',82.50),
+(3,'2022-1034U','Carlos Miguel','Aráuz Jarquín','Ingeniería Electrónica',97.50),
+(4,'2023-1051U','Nicole Paola','Chavarría Herrera','Ingeniería Electrónica',70.42),
+(5,'2023-1068U','José Wilmer','González Jarquín','Ingeniería Electrónica',70.84),
+(6,'2023-1085U','Sofía Valeria','Lanuza Centeno','Ingeniería Electrónica',76.54),
+(7,'2025-1102U','Valeria María','Moreno Martínez','Ingeniería Civil',81.39),
+(8,'2023-1119U','Roberto Kevin','Rocha Vargas','Ingeniería Electrónica',78.09),
+(9,'2022-1136U','Bryan Ángel','Rodríguez Zeledón','Ingeniería Civil',80.82),
+(10,'2023-1153U','Ernesto Francisco','Gutiérrez González','Ingeniería en Sistemas',83.16),
+(11,'2023-1170U','Daniela Ana','Lanuza Herrera','Ingeniería Civil',79.43),
+(12,'2022-1187U','Sofía María','Blandón Vargas','Ingeniería en Computación',76.90),
+(13,'2025-1204U','José Wilmer','Altamirano Aráuz','Ingeniería en Computación',89.10),
+(14,'2023-1221U','Óscar Miguel','González Talavera','Ingeniería Industrial',88.02),
+(15,'2024-1238U','Erick Wilmer','González Gutiérrez','Ingeniería Electrónica',78.52),
+(16,'2022-1255U','Jorge Luis','Zeledón Espinoza','Ingeniería en Sistemas',97.70),
+(17,'2024-1272U','Óscar Kevin','Gutiérrez Vargas','Ingeniería Civil',80.81),
+(18,'2023-1289U','Carlos Jorge','Lanuza Herrera','Ingeniería en Sistemas',86.84),
+(19,'2025-1306U','Camila Valeria','Hernández Lanuza','Ingeniería Electrónica',73.80),
+(20,'2023-1323U','Karla Nicole','Hernández Mendoza','Ingeniería Electrónica',76.99),
+(21,'2023-1340U','Luis Roberto','Herrera Cerda','Ingeniería Industrial',94.70),
+(22,'2024-1357U','Erick José','Rodríguez López','Ingeniería en Computación',90.72),
+(23,'2025-1374U','Gabriela Daniela','Centeno Jarquín','Ingeniería Civil',84.56),
+(24,'2022-1391U','Luis Jorge','Somarriba Cerda','Ingeniería Civil',75.95),
+(25,'2025-1408U','Roberto José','Martínez Castillo','Ingeniería Industrial',76.97),
+(26,'2023-1425U','Luis Kevin','Úbeda Picado','Ingeniería en Sistemas',80.14),
+(27,'2023-1442U','Sofía Nicole','Talavera Obando','Ingeniería Electrónica',70.98),
+(28,'2022-1459U','Óscar Juan','Obando Mendoza','Ingeniería en Sistemas',86.75),
+(29,'2024-1476U','Óscar Carlos','Talavera Mendoza','Ingeniería en Computación',97.98),
+(30,'2022-1493U','Óscar Miguel','Úbeda Talavera','Ingeniería en Computación',92.21),
+(31,'2022-1510U','Sofía Ana','Moreno Somarriba','Ingeniería Industrial',96.44),
+(32,'2025-1527U','Ernesto Óscar','Lanuza Gutiérrez','Ingeniería Industrial',86.32),
+(33,'2024-1544U','Carlos Wilmer','Herrera Rodríguez','Ingeniería Industrial',90.39),
+(34,'2025-1561U','Jessica Paola','Obando Lanuza','Ingeniería Industrial',82.95),
+(35,'2024-1578U','Miguel Ángel','Picado Gutiérrez','Ingeniería Electrónica',72.46),
+(36,'2025-1595U','Jorge Roberto','Rodríguez Somarriba','Ingeniería Civil',95.10),
+(37,'2023-1612U','Gabriela Karla','Moreno Chavarría','Ingeniería Electrónica',74.75),
+(38,'2023-1629U','Nicole Valeria','Somarriba Jarquín','Ingeniería Civil',81.33),
+(39,'2023-1646U','Fátima Nicole','Blandón Aráuz','Ingeniería en Computación',80.76),
+(40,'2024-1663U','Fátima Karla','Hernández Somarriba','Ingeniería en Sistemas',89.91),
+(41,'2025-1680U','Lucía Karla','Rodríguez Altamirano','Ingeniería Civil',95.92),
+(42,'2024-1697U','Daniela Nicole','Picado Somarriba','Ingeniería Electrónica',82.67),
+(43,'2022-1714U','Ernesto José','Castillo Espinoza','Ingeniería Civil',85.98),
+(44,'2023-1731U','Nicole Mariela','Lanuza Gutiérrez','Ingeniería Industrial',82.74),
+(45,'2023-1748U','Ángel Ernesto','Castillo Rivera','Ingeniería en Sistemas',97.55),
+(46,'2024-1765U','Óscar Carlos','Herrera Cerda','Ingeniería en Sistemas',89.17),
+(47,'2022-1782U','Ernesto Óscar','Castillo Pérez','Ingeniería Industrial',84.98),
+(48,'2024-1799U','Luis Jorge','Castillo Vargas','Ingeniería Electrónica',89.52),
+(49,'2023-1816U','Erick Ernesto','Aráuz Obando','Ingeniería en Sistemas',81.49),
+(50,'2022-1833U','Karla Valeria','Altamirano González','Ingeniería Industrial',85.40),
+(51,'2022-1850U','Valeria Sofía','Herrera González','Ingeniería en Sistemas',75.97),
+(52,'2024-1867U','Ana Gabriela','Cerda Aráuz','Ingeniería Civil',95.48),
+(53,'2025-1884U','Juan Miguel','Martínez López','Ingeniería Civil',85.41),
+(54,'2022-1901U','Valeria María','González Aráuz','Ingeniería Industrial',92.40),
+(55,'2023-1918U','Miguel Juan','Moreno Aráuz','Ingeniería Industrial',74.16),
+(56,'2022-1935U','Jessica Valeria','Lanuza Obando','Ingeniería en Computación',82.30),
+(57,'2023-1952U','Lucía Paola','Cerda Herrera','Ingeniería Electrónica',84.40),
+(58,'2023-1969U','Gabriela Nicole','Zeledón Espinoza','Ingeniería Civil',93.82),
+(59,'2022-1986U','Camila Valeria','González Blandón','Ingeniería Electrónica',70.14),
+(60,'2025-2003U','María Andrea','López Picado','Ingeniería Electrónica',92.43);
